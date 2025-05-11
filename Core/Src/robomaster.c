@@ -72,6 +72,15 @@ void setTarget(RoboMaster* rm, const uint8_t id, const float target)
 		pid_out = pidCompute(&rm->pid[id-1], rad_per_s, rm->position[id-1], 0.02);
 	}
 
+	if(pid_out > 10000)
+	{
+		pid_out = 10000;
+	}
+	else if(pid_out < -10000)
+	{
+		pid_out = -10000;
+	}
+
 	if(id < 5)
 	{
 		rm->buf_1[2*id-2] = (pid_out >> 8) & 0xFF;
