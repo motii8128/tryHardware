@@ -17,14 +17,14 @@ typedef struct
 	int pwm_2;
 	int pwm_3;
 
-	int rpm_1;
-	int rpm_2;
-	int rpm_3;
+	float rpm_1;
+	float rpm_2;
+	float rpm_3;
 }ReceiveValue;
 
 ReceiveValue newValue()
 {
-	ReceiveValue a = {0,0,0,0,0,0};
+	ReceiveValue a = {0,0,0,0.0,0.0,0.0};
 
 	return a;
 }
@@ -55,7 +55,7 @@ ReceiveValue SerialRead(UART_HandleTypeDef *huart)
 				value.rpm_1 = rate * 10000;
 
 				rate = (buf[4] - 127.0) / 127.0;
-				value.rpm_2 = rate * 10000;
+				value.rpm_2 = rate * 4.75;
 
 				rate = (buf[5] - 127.0) / 127.0;
 				value.rpm_3 = rate * 10000;

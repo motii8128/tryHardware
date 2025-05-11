@@ -22,11 +22,10 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "serial_utils.h"
-#include "robomaster_utils.h"
-#include "can_utils.h"
-#include "pid_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "robomaster.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -71,83 +70,12 @@ static void MX_TIM15_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-RoboMasterFeedBack fb;
-RoboMasterCmd tx_packet;
-int prev_rpm1, prev_rpm2, prev_rpm3;
+RoboMaster rm;
 
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
-{
-	// 受信した際に送信元の情報とかが入る
-	CAN_RxHeaderTypeDef RxHeader;
-
-	//　受信したCANのデーターを格納する配列
-	uint8_t RxData[8];
-
-	// HAL_OKならRxDataに情報が入る。
-	if (HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, RxData)== HAL_OK) {
-
-		// モーターのIDが１番なら0x201が来るので関数で扱うため0x200を引くと1になる
-		uint32_t id = RxHeader.StdId - 0x200;
-
-		// parseRoboMasterFeedBack(モーターID、受信内容、RoboMasterFeedBack構造体ポインタ)
-		//受信内容の中から各エンコーダ値を取り出す。
-		parseRoboMasterFeedBack(id, RxData, &fb);
-	}
-}
-void motor1(int pwm)
-{
-	if(pwm > 0)
-	{
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, pwm);
-		HAL_GPIO_WritePin(DIR1_GPIO_Port, DIR1_Pin, GPIO_PIN_RESET);
-	}
-	else if(pwm < 0)
-	{
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, abs(pwm));
-		HAL_GPIO_WritePin(DIR1_GPIO_Port, DIR1_Pin, GPIO_PIN_SET);
-	}
-	else
-	{
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 0);
-		HAL_GPIO_WritePin(DIR1_GPIO_Port, DIR1_Pin, GPIO_PIN_RESET);
-	}
-}
-void motor2(int pwm)
-{
-	if(pwm > 0)
-	{
-		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, pwm);
-		HAL_GPIO_WritePin(DIR2_GPIO_Port, DIR2_Pin, GPIO_PIN_RESET);
-	}
-	else if(pwm < 0)
-	{
-		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, abs(pwm));
-		HAL_GPIO_WritePin(DIR2_GPIO_Port, DIR2_Pin, GPIO_PIN_SET);
-	}
-	else
-	{
-		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
-		HAL_GPIO_WritePin(DIR2_GPIO_Port, DIR2_Pin, GPIO_PIN_RESET);
-	}
-}
-void motor3(int pwm)
-{
-	if(pwm > 0)
-	{
-		__HAL_TIM_SET_COMPARE(&htim15, TIM_CHANNEL_2, pwm);
-		HAL_GPIO_WritePin(DIR3_GPIO_Port, DIR3_Pin, GPIO_PIN_RESET);
-	}
-	else if(pwm < 0)
-	{
-		__HAL_TIM_SET_COMPARE(&htim15, TIM_CHANNEL_2, abs(pwm));
-		HAL_GPIO_WritePin(DIR3_GPIO_Port, DIR3_Pin, GPIO_PIN_SET);
-	}
-	else
-	{
-		__HAL_TIM_SET_COMPARE(&htim15, TIM_CHANNEL_2, 0);
-		HAL_GPIO_WritePin(DIR3_GPIO_Port, DIR3_Pin, GPIO_PIN_RESET);
-	}
-}
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
+void motor1(int pwm);
+void motor2(int pwm);
+void motor3(int pwm);
 /* USER CODE END 0 */
 
 /**
@@ -187,15 +115,18 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_CAN_Start(&hcan1);
   HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
-  PID pid_1 = pidInitialize(1.0, 0.03, 0.1);
-  PID pid_2 = pidInitialize(1.0, 0.03, 0.1);
-  PID pid_3 = pidInitialize(1.0, 0.03, 0.1);
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
   HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
-  prev_rpm1 = 0;
-  prev_rpm2 = 0;
-  prev_rpm3 = 0;
+
+  rm = initalizeRoboMaster();
+  setControlType(&rm, 1, Velocity);
+  setControlType(&rm, 2, Position);
+  setControlType(&rm, 3, Velocity);
+  setGain(&rm, 1, 1.0, 0.01, 0.1);
+  setGain(&rm, 2, 0.35, 0.0, 0.2);
+  setGain(&rm, 3, 1.0, 0.01, 0.1);
+
   HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_RESET);
   HAL_Delay(50);
   HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_SET);
@@ -221,23 +152,15 @@ int main(void)
 		  HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_RESET);
 	  }
 
-	  prev_rpm1 = LowPathFilter(0.2, fb.rpm[0], prev_rpm1);
-	  prev_rpm2 = LowPathFilter(0.2, fb.rpm[1], prev_rpm2);
-	  prev_rpm3 = LowPathFilter(0.2, fb.rpm[2], prev_rpm3);
-
-	  int16_t out1 = pidCompute(&pid_1, target.rpm_1, prev_rpm1, 0.02);
-	  int16_t out2 = pidCompute(&pid_2, target.rpm_2, prev_rpm2, 0.02);
-	  int16_t out3 = pidCompute(&pid_3, target.rpm_3, prev_rpm3, 0.02);
-
-	  setCurrent(1, out1, &tx_packet);
-	  setCurrent(2, out2, &tx_packet);
-	  setCurrent(3, out3, &tx_packet);
+	  setTarget(&rm, 1, target.rpm_1);
+	  setTarget(&rm, 2, target.rpm_2);
+	  setTarget(&rm, 3, target.rpm_3);
 
 	  motor1(target.pwm_1);
 	  motor2(target.pwm_2);
 	  motor3(target.pwm_3);
 
-	  CAN_TX(0x200, tx_packet.buf_1, &hcan1);
+	  controlRoboMaster(&rm, &hcan1);
 	  HAL_Delay(20);
     /* USER CODE END WHILE */
 
@@ -620,7 +543,78 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+	// 受信した際に送信元の情報とかが入る
+	CAN_RxHeaderTypeDef RxHeader;
 
+	//　受信したCANのデーターを格納する配列
+	uint8_t RxData[8];
+
+	// HAL_OKならRxDataに情報が入る。
+	if (HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, RxData)== HAL_OK) {
+
+		// モーターのIDが１番なら0x201が来るので関数で扱うため0x200を引くと1になる
+		uint32_t id = RxHeader.StdId - 0x200;
+
+		//受信内容の中から各エンコーダ値を取り出す。
+		setRecvData(&rm, id, RxData);
+	}
+}
+void motor1(int pwm)
+{
+	if(pwm > 0)
+	{
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, pwm);
+		HAL_GPIO_WritePin(DIR1_GPIO_Port, DIR1_Pin, GPIO_PIN_RESET);
+	}
+	else if(pwm < 0)
+	{
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, abs(pwm));
+		HAL_GPIO_WritePin(DIR1_GPIO_Port, DIR1_Pin, GPIO_PIN_SET);
+	}
+	else
+	{
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 0);
+		HAL_GPIO_WritePin(DIR1_GPIO_Port, DIR1_Pin, GPIO_PIN_RESET);
+	}
+}
+void motor2(int pwm)
+{
+	if(pwm > 0)
+	{
+		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, pwm);
+		HAL_GPIO_WritePin(DIR2_GPIO_Port, DIR2_Pin, GPIO_PIN_RESET);
+	}
+	else if(pwm < 0)
+	{
+		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, abs(pwm));
+		HAL_GPIO_WritePin(DIR2_GPIO_Port, DIR2_Pin, GPIO_PIN_SET);
+	}
+	else
+	{
+		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
+		HAL_GPIO_WritePin(DIR2_GPIO_Port, DIR2_Pin, GPIO_PIN_RESET);
+	}
+}
+void motor3(int pwm)
+{
+	if(pwm > 0)
+	{
+		__HAL_TIM_SET_COMPARE(&htim15, TIM_CHANNEL_2, pwm);
+		HAL_GPIO_WritePin(DIR3_GPIO_Port, DIR3_Pin, GPIO_PIN_RESET);
+	}
+	else if(pwm < 0)
+	{
+		__HAL_TIM_SET_COMPARE(&htim15, TIM_CHANNEL_2, abs(pwm));
+		HAL_GPIO_WritePin(DIR3_GPIO_Port, DIR3_Pin, GPIO_PIN_SET);
+	}
+	else
+	{
+		__HAL_TIM_SET_COMPARE(&htim15, TIM_CHANNEL_2, 0);
+		HAL_GPIO_WritePin(DIR3_GPIO_Port, DIR3_Pin, GPIO_PIN_RESET);
+	}
+}
 /* USER CODE END 4 */
 
 /**
