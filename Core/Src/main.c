@@ -21,11 +21,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "robomaster.h"
 #include "serial_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "robomaster.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -120,11 +119,11 @@ int main(void)
   HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
 
   rm = initalizeRoboMaster();
-  setControlType(&rm, 1, Velocity);
-  setControlType(&rm, 2, Position);
-  setControlType(&rm, 3, Velocity);
+  setType(&rm, 1, M3508);
+  setType(&rm, 2, M3508);
+  setType(&rm, 3, M3508);
   setGain(&rm, 1, 1.0, 0.01, 0.1);
-  setGain(&rm, 2, 0.35, 0.0, 0.2);
+  setGain(&rm, 2, 0.1, 0.0, 0.05);
   setGain(&rm, 3, 1.0, 0.01, 0.1);
 
   HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_RESET);
@@ -152,9 +151,9 @@ int main(void)
 		  HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_RESET);
 	  }
 
-	  setTarget(&rm, 1, target.rpm_1);
-	  setTarget(&rm, 2, target.rpm_2);
-	  setTarget(&rm, 3, target.rpm_3);
+	  setTarget(&rm, 1, Velocity, target.rpm_1);
+	  setTarget(&rm, 2, Position, target.rpm_2);
+	  setTarget(&rm, 3, Velocity, target.rpm_3);
 
 	  motor1(target.pwm_1);
 	  motor2(target.pwm_2);
