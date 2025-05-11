@@ -123,7 +123,7 @@ int main(void)
   setType(&rm, 2, M3508);
   setType(&rm, 3, M3508);
   setGain(&rm, 1, 1.0, 0.01, 0.1);
-  setGain(&rm, 2, 0.1, 0.0, 0.05);
+  setGain(&rm, 2, 0.1, 0.0, 0.01);
   setGain(&rm, 3, 1.0, 0.01, 0.1);
 
   HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_RESET);

@@ -68,7 +68,7 @@ void setTarget(RoboMaster* rm, const uint8_t id, const enum ControlType control_
 	float pid_out = 0;
 	if(control_type == Velocity)
 	{
-		pid_out = pidCompute(&rm->pid[index], target, rm->rpm[index], 0.02);
+		pid_out = pidCompute(&rm->pid[index], target, rm->rpm[index], 0.02, 0.2);
 	}
 	else if(control_type == Position)
 	{
@@ -79,7 +79,7 @@ void setTarget(RoboMaster* rm, const uint8_t id, const enum ControlType control_
 		if(target_rpm > max_rpm)target_rpm = max_rpm;
 		if(target_rpm < (-1.0 * max_rpm))target_rpm = -1.0 * max_rpm;
 
-		pid_out = pidCompute(&rm->pid[index], target_rpm, rm->rpm[index], 0.02);
+		pid_out = pidCompute(&rm->pid[index], target_rpm, rm->rpm[index], 0.02, 1.0);
 	}
 
 	int16_t target_current = (int16_t)(pid_out * max_current / max_rpm);
@@ -159,12 +159,12 @@ PID pidInitialize(float p_g, float i_g, float d_g)
 	return pid;
 }
 
-float pidCompute(PID *pid, float target, float actual, float delta_time)
+float pidCompute(PID *pid, float target, float actual, float delta_time, float lpf_alpha)
 {
 	float prop = target - actual;
 	pid->integral += prop * delta_time;
 	float derivative = (prop - pid->prev_prop) / delta_time;
-	pid->prev_d = pidLowPathFilter(0.2, derivative, pid->prev_d);
+	pid->prev_d = pidLowPathFilter(lpf_alpha, derivative, pid->prev_d);
 	pidIntegralLimit(pid, 10230, -10230);
 
 	float pid_out = pid->p_gain * prop + pid->i_gain * pid->integral + pid->d_gain * pid->prev_d;

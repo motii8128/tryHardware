@@ -67,7 +67,7 @@ void setRecvData(RoboMaster* rm, const uint8_t id, uint8_t* rx_buf);
 void controlRoboMaster(RoboMaster* rm, CAN_HandleTypeDef* can);
 
 PID pidInitialize(float p_g, float i_g, float d_g);
-float pidCompute(PID *pid, float target, float actual, float delta_time);
+float pidCompute(PID *pid, float target, float actual, float delta_time, float lpf_alpha);
 void pidIntegralLimit(PID *pid, float max, float min);
 float pidLowPathFilter(float alpha, float new_rpm, float prev_rpm);
 
