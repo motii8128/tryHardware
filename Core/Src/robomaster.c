@@ -66,10 +66,10 @@ void setTarget(RoboMaster* rm, const uint8_t id, const float target)
 	else if(rm->control_type[id-1] == Position)
 	{
 		float delta_position = target - rm->position[id-1];
-		float delta_rad = delta_position * M_PI * 2.0;
-		float rad_per_s = delta_rad / 0.02;
+		float rps = delta_position / 0.2;
+		float target_rpm = rps * 60;
 
-		pid_out = pidCompute(&rm->pid[id-1], rad_per_s, rm->position[id-1], 0.02);
+		pid_out = pidCompute(&rm->pid[id-1], target_rpm, rm->rpm[id-1], 0.02);
 	}
 
 	if(pid_out > 10000)
@@ -136,4 +136,6 @@ void controlRoboMaster(RoboMaster* rm, CAN_HandleTypeDef* can)
 	{
 		HAL_CAN_AddTxMessage(can, &TxHeader, rm->buf_1, &TxMailBox);
 	}
+
+	TxHeader.StdId = 0x1FF;
 }
