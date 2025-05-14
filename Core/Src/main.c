@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "robomaster.h"
+#include "pwm.h"
 #include "serial_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,9 +73,6 @@ static void MX_TIM15_Init(void);
 RoboMaster rm;
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
-void motor1(int pwm);
-void motor2(int pwm);
-void motor3(int pwm);
 /* USER CODE END 0 */
 
 /**
@@ -122,9 +120,20 @@ int main(void)
   setType(&rm, 1, M3508);
   setType(&rm, 2, M3508);
   setType(&rm, 3, M3508);
-  setGain(&rm, 1, 1.0, 0.01, 0.1);
-  setGain(&rm, 2, 0.1, 0.0, 0.01);
+  setType(&rm, 4, M3508);
+  setType(&rm, 5, M2006);
+  setType(&rm, 6, M2006);
+  setType(&rm, 7, M2006);
+  setType(&rm, 8, M2006);
+
+  setGain(&rm, 1, 0.5, 0.0, 0.05);
+  setGain(&rm, 2, 1.0, 0.01, 0.1);
   setGain(&rm, 3, 1.0, 0.01, 0.1);
+  setGain(&rm, 4, 1.0, 0.01, 0.1);
+  setGain(&rm, 5, 1.0, 0.01, 0.1);
+  setGain(&rm, 6, 1.0, 0.01, 0.1);
+  setGain(&rm, 7, 1.0, 0.01, 0.1);
+  setGain(&rm, 8, 1.0, 0.01, 0.1);
 
   HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_RESET);
   HAL_Delay(50);
@@ -151,8 +160,8 @@ int main(void)
 		  HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_RESET);
 	  }
 
-	  setTarget(&rm, 1, Velocity, target.rpm_1);
-	  setTarget(&rm, 2, Position, target.rpm_2);
+	  setTarget(&rm, 1, Position, target.rpm_1);
+	  setTarget(&rm, 2, Velocity, target.rpm_2);
 	  setTarget(&rm, 3, Velocity, target.rpm_3);
 
 	  motor1(target.pwm_1);
@@ -560,60 +569,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		setRecvData(&rm, id, RxData);
 	}
 }
-void motor1(int pwm)
-{
-	if(pwm > 0)
-	{
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, pwm);
-		HAL_GPIO_WritePin(DIR1_GPIO_Port, DIR1_Pin, GPIO_PIN_RESET);
-	}
-	else if(pwm < 0)
-	{
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, abs(pwm));
-		HAL_GPIO_WritePin(DIR1_GPIO_Port, DIR1_Pin, GPIO_PIN_SET);
-	}
-	else
-	{
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 0);
-		HAL_GPIO_WritePin(DIR1_GPIO_Port, DIR1_Pin, GPIO_PIN_RESET);
-	}
-}
-void motor2(int pwm)
-{
-	if(pwm > 0)
-	{
-		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, pwm);
-		HAL_GPIO_WritePin(DIR2_GPIO_Port, DIR2_Pin, GPIO_PIN_RESET);
-	}
-	else if(pwm < 0)
-	{
-		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, abs(pwm));
-		HAL_GPIO_WritePin(DIR2_GPIO_Port, DIR2_Pin, GPIO_PIN_SET);
-	}
-	else
-	{
-		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
-		HAL_GPIO_WritePin(DIR2_GPIO_Port, DIR2_Pin, GPIO_PIN_RESET);
-	}
-}
-void motor3(int pwm)
-{
-	if(pwm > 0)
-	{
-		__HAL_TIM_SET_COMPARE(&htim15, TIM_CHANNEL_2, pwm);
-		HAL_GPIO_WritePin(DIR3_GPIO_Port, DIR3_Pin, GPIO_PIN_RESET);
-	}
-	else if(pwm < 0)
-	{
-		__HAL_TIM_SET_COMPARE(&htim15, TIM_CHANNEL_2, abs(pwm));
-		HAL_GPIO_WritePin(DIR3_GPIO_Port, DIR3_Pin, GPIO_PIN_SET);
-	}
-	else
-	{
-		__HAL_TIM_SET_COMPARE(&htim15, TIM_CHANNEL_2, 0);
-		HAL_GPIO_WritePin(DIR3_GPIO_Port, DIR3_Pin, GPIO_PIN_RESET);
-	}
-}
+
 /* USER CODE END 4 */
 
 /**

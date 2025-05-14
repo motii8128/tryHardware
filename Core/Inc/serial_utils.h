@@ -52,10 +52,10 @@ ReceiveValue SerialRead(UART_HandleTypeDef *huart)
 				value.pwm_3 = rate * 1000;
 
 				rate = (buf[3] - 127.0) / 127.0;
-				value.rpm_1 = rate * 10000;
+				value.rpm_1 = rate * 323.0;
 
 				rate = (buf[4] - 127.0) / 127.0;
-				value.rpm_2 = rate * 4.75;
+				value.rpm_2 = rate * 10000;
 
 				rate = (buf[5] - 127.0) / 127.0;
 				value.rpm_3 = rate * 10000;
