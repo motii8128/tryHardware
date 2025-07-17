@@ -12,8 +12,10 @@
 #include <math.h>
 #include "stm32l4xx_hal.h"
 
-// 電流指令の最大値
-#define MAX_CURRENT 10000
+// M2006の最大電流指令
+#define M2006_CURRENT 10000
+// M3508の最大電流指令
+#define M3508_CURRENT 16000
 
 // M2006の最大回転数
 #define M2006_RPM 13000
@@ -64,7 +66,8 @@ typedef struct
 	PID pid[8]; /* PID構造体 */
 	enum MotorType motor_type[8]; /* ロボマスの種類 */
 
-	float max_current; /* 最大電流値。初期化時にマクロから取得する */
+	float m2006_current; /* M2006の最大電流値。初期化時にマクロから取得する */
+	float m3508_current; /* M3508の最大電流値。初期化時にマクロから取得する */
 	float m2006_max_rpm; /* M2006の最大回転速度。初期化時にマクロから取得する */
 	float m3508_max_rpm; /* M3508の最大回転速度。初期化時にマクロから取得する */
 }RoboMaster;
