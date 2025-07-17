@@ -11,7 +11,8 @@ RoboMaster initalizeRoboMaster()
 {
 	RoboMaster a;
 	// 各最大値を初期化
-	a.max_current = MAX_CURRENT;
+	a.m2006_current = M2006_CURRENT;
+	a.m3508_current = M3508_CURRENT;
 	a.m2006_max_rpm = M2006_RPM;
 	a.m3508_max_rpm = M3508_RPM;
 
@@ -82,7 +83,7 @@ void setTarget(RoboMaster* rm, const uint8_t id, const enum ControlType control_
 	const float max_rpm = (rm->motor_type[index] == M2006) ? rm->m2006_max_rpm : rm->m3508_max_rpm;
 
 	// 最大電流値を取得する。何回も構造体内部を参照するよりはここで定数として取得したほうが速い？かも
-	const float max_current = rm->max_current;
+	const float max_current = (rm->motor_type[index] == M2006) ? rm->m2006_current : rm->m3508_current;
 
 	// PID出力結果を格納する変数。この先、制御方法で分岐するため
 	float pid_out = 0;
