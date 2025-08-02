@@ -93,27 +93,13 @@ void setTarget(RoboMaster* rm, const uint8_t id, const enum ControlType control_
 		// 目標回転速度とエンコーダの回転速度を用いて速度制御する
 		// 制御周期は0.02 = 20ms
 		// ローパスフィルターゲインは0.2。つまり新しい目標値：前回の目標値 = 0.2：0.8の比率で値を採用する
-		pid_out = pidCompute(&rm->pid[index], target, rm->rpm[index], 0.02, 0.2);
+		pid_out = pidCompute(&rm->pid[index], target, rm->rpm[index], 0.02, 0.8);
 	}
 	else if(control_type == Position) /* 制御方法が位置制御だった場合 */
 	{
-		// 目標合計回転数と現在合計回転数の差を出す
-		float delta_position = target - rm->position[index];
-
-		// 一秒あたりの回転速度を算出する。ここでは0.02秒で目標まで到達すると仮定した
-		float rps = delta_position / 0.02;
-
-		// 一秒あたりの回転速度をRPMに直す
-		float target_rpm = rps * 60;
-
-		// 大抵の場合、最大回転速度をオーバーするので最大値に丸める
-		if(target_rpm > max_rpm)target_rpm = max_rpm;
-		if(target_rpm < (-1.0 * max_rpm))target_rpm = -1.0 * max_rpm;
-
-		// 計算した目標回転速度とエンコーダの回転速度に基づいてPIDを計算する
 		// 制御周期は0.02 = 20ms
 		// ローパスフィルターゲインは1.0。つまり常に新しい値を採用するので、実質ローパスフィルターを使っていないのと同じになる。
-		pid_out = pidCompute(&rm->pid[index], target_rpm, rm->rpm[index], 0.02, 1.0);
+		pid_out = pidCompute(&rm->pid[index], target, rm->position[index], 0.02, 1.0);
 	}
 
 	// PIDの結果を電流指令値に変換する

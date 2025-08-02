@@ -22,9 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "robomaster.h"
-#include "serial_utils.h"
-#include <stdio.h>
-#include <stdlib.h>
+#include "serial_util.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -39,7 +37,12 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+RoboMaster rm;
 
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
+void motor1(int pwm);
+void motor2(int pwm);
+void motor3(int pwm);
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -69,9 +72,7 @@ static void MX_TIM15_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-RoboMaster rm;
 
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
 /* USER CODE END 0 */
 
 /**
@@ -110,39 +111,30 @@ int main(void)
   MX_TIM15_Init();
   /* USER CODE BEGIN 2 */
   HAL_CAN_Start(&hcan1);
-  HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
-  HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
+	HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
+	HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_2);
 
-  rm = initalizeRoboMaster();
-  setType(&rm, 1, M2006);
-  setType(&rm, 2, M3508);
-  setType(&rm, 3, M3508);
-  setType(&rm, 4, M3508);
-  setType(&rm, 5, M2006);
-  setType(&rm, 6, M2006);
-  setType(&rm, 7, M2006);
-  setType(&rm, 8, M2006);
+	rm = initalizeRoboMaster();
+	setType(&rm, 1, M2006);
+	setType(&rm, 2, M2006);
+	setType(&rm, 3, M2006);
 
-  setGain(&rm, 1, 0.5, 0.0, 0.05);
-  setGain(&rm, 2, 1.0, 0.01, 0.1);
-  setGain(&rm, 3, 1.0, 0.01, 0.1);
-  setGain(&rm, 4, 1.0, 0.01, 0.1);
-  setGain(&rm, 5, 1.0, 0.01, 0.1);
-  setGain(&rm, 6, 1.0, 0.01, 0.1);
-  setGain(&rm, 7, 1.0, 0.01, 0.1);
-  setGain(&rm, 8, 1.0, 0.01, 0.1);
+	setGain(&rm, 1, 0.5, 0.0, 0.03);
+	setGain(&rm, 2, 0.5, 0.0, 0.03);
+	setGain(&rm, 3, 0.5, 0.0, 0.03);
 
-  HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_RESET);
-  HAL_Delay(50);
-  HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_SET);
-  HAL_Delay(50);
-  HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_RESET);
-  HAL_Delay(50);
-  HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_SET);
-  HAL_Delay(50);
-  HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_RESET);
+	HAL_Delay(50);
+	HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_SET);
+	HAL_Delay(50);
+	HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_RESET);
+	HAL_Delay(50);
+	HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_SET);
+	HAL_Delay(50);
+	HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_RESET);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -159,7 +151,7 @@ int main(void)
 		  HAL_GPIO_WritePin(internal_GPIO_Port, internal_Pin, GPIO_PIN_RESET);
 	  }
 
-	  setTarget(&rm, 1, Position, target.rpm_1);
+	  setTarget(&rm, 1, Velocity, target.rpm_1);
 	  setTarget(&rm, 2, Velocity, target.rpm_2);
 	  setTarget(&rm, 3, Velocity, target.rpm_3);
 
@@ -257,19 +249,7 @@ static void MX_CAN1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN CAN1_Init 2 */
-  	  CAN_FilterTypeDef filter;
-	filter.FilterIdHigh         = 0x201 << 5;                  // フィルターID1
-	filter.FilterIdLow          = 0x202 << 5;                  // フィルターID2
-	filter.FilterMaskIdHigh     = 0x203 << 5;                  // フィルターID3
-	filter.FilterMaskIdLow      = 0x204 << 5;    // フィルターID4
-	filter.FilterScale          = CAN_FILTERSCALE_16BIT; // 16モード
-	filter.FilterFIFOAssignment = CAN_FILTER_FIFO0;      // FIFO0へ格納
-	filter.FilterBank           = 0;
-	filter.FilterMode           = CAN_FILTERMODE_IDLIST; // IDリストモード
-	filter.SlaveStartFilterBank = 14;
-	filter.FilterActivation     = ENABLE;
 
-	HAL_CAN_ConfigFilter(&hcan1, &filter);
   /* USER CODE END CAN1_Init 2 */
 
 }
@@ -473,7 +453,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
+  huart2.Init.BaudRate = 230400;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -500,8 +480,9 @@ static void MX_USART2_UART_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+
+  /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -545,8 +526,9 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(DIR2_GPIO_Port, &GPIO_InitStruct);
 
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+
+  /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -624,6 +606,7 @@ void motor3(int pwm)
 	}
 }
 
+
 /* USER CODE END 4 */
 
 /**
@@ -640,8 +623,7 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.

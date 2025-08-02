@@ -31,9 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-void motor1(int pwm);
-void motor2(int pwm);
-void motor3(int pwm);
+
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
